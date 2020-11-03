@@ -32,7 +32,7 @@ def benchmark_saved_model(SAVED_MODEL_DIR, BATCH_SIZE=64, NUM_BATCHES=100):
     for i in range(NUM_BATCHES):
         labeling = infer(x)
         
-        end_time = time.time()
+    end_time = time.time()
     print('Inference speed: %.2f samples/s'%(NUM_BATCHES*BATCH_SIZE/(end_time-start_time)))
 
 if(len(sys.argv)>2):
