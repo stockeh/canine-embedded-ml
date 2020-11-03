@@ -87,7 +87,7 @@ def load_data(npy_image_path, npy_label_path, normalize=True, remove_undefined=F
     return X, T, class_labels
 
 
-def partition_data(X, T, partition=(0.6,0.2,0.2), shuffle=False):
+def partition_data(X, T, partition=(0.6,0.2,0.2), shuffle=False, seed=1234):
     """Load the data and parition it to training, validation (optional), and test set 
     according to class proportions.
     ---
@@ -138,6 +138,7 @@ def partition_data(X, T, partition=(0.6,0.2,0.2), shuffle=False):
         testIndices += rowIndices[cRows[nTrain+nValidate:nTrain+nValidate+nTest]].tolist()
     
     if shuffle:
+        np.random.seed(seed)
         np.random.shuffle(trainIndices)
         if nValidate > 0:
             np.random.shuffle(validateIndices)
