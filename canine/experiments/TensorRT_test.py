@@ -34,6 +34,13 @@ def benchmark_saved_model(SAVED_MODEL_DIR, BATCH_SIZE=64, NUM_BATCHES=100):
         
     end_time = time.time()
     print('Inference speed: %.2f samples/s'%(NUM_BATCHES*BATCH_SIZE/(end_time-start_time)))
+    
+    
+def my_input_fn():
+    for _ in range(64):
+        inp1 = np.random.rand(1, 224, 224, 3).astype(np.float32)
+        #x = tf.convert_to_tensor(np.random.rand(224, 224, 3), dtype_hint=tf.float32)
+        yield [inp1] #inp2
 
 if(len(sys.argv)>2):
     PRECISION = sys.argv[2]
@@ -42,7 +49,11 @@ if(len(sys.argv)>2):
 
     converter = tf.experimental.tensorrt.Converter(
         input_saved_model_dir=INPUT_MODEL_DIR, conversion_params=params)
+        
     converter.convert()
+    
+    converter.build(input_fn=my_input_fn)
+    
     converter.save(INPUT_MODEL_DIR+'-trt-'+PRECISION)
     INPUT_MODEL_DIR = INPUT_MODEL_DIR+'-trt-'+PRECISION
 
