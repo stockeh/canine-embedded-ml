@@ -1,34 +1,32 @@
-# Uses Camera connected to the Jetson Nano, takes an frame from the video and returns it as a 224x224x3 np array
-
-import numpy as np
+## Uses Camera connected to the Jetson Nano, takes an frame from the video and returns it as a 224x224x3 np array
 import cv2
+import time
+from matplotlib import pyplot as plt
 
-GSTREAMER_PIPELINE = 'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=3280, height=2464, format=(string)NV12, framerate=21/1 ! nvvidconv flip-method=0 ! video/x-raw, width=960, height=616, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink wait-on-eos=false max-buffers=1 drop=True'
-
+GSTREAMER_PIPELINE ="nvarguscamerasrc ! video/x-raw(memory:NVMM), width=(int)1280, height=(int)720, format=(string)NV12, framerate=(fraction)30/1 ! nvvidconv flip-method=2 ! video/x-raw, width=(int)1280, height=(int)720, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink"
 
 def captureFrame():
+
     cap = cv2.VideoCapture(GSTREAMER_PIPELINE, cv2.CAP_GSTREAMER)
-#    cap.set(3, 224)
-#    cap.set(4, 224)
+    for i in range(30):
+        temp = cap.read()
 
-    while True and video_capture.isOpened():
-        key, frame = cap.read()
-        resize = cv2.resize(frame, (224, 224))
-        
-        if not return_key:
-            break
-
-        cv2.imshow('frame',frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    frame = cv2.resize(frame, (224,224), interpolation=cv2.INTER_AREA)
+    if cap.isOpened():
+        ret_val, img = cap.read()
+        img = cv2.resize(img, (224, 224))
+       # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    else:
+        print("Unable to open camera")
     
-    # When everything done, release the capture
-    cap.release()
-    cv2.destroyAllWindows()
-    
-    return frame
+   # plt.imshow(img, cmap = 'gray', interpolation = 'bicubic')
+   # plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+   # plt.show()     
+   # print("image type: ", type(img))
+   # print("shape of image: ", img.shape)
+    cv2.imwrite('./image.png',img)
+
+    return img
+
 
 if __name__ == "__main__":
     captureFrame()

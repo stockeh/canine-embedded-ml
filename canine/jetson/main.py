@@ -3,14 +3,26 @@ import numpy as np
 import argparse
 import collections
 import time
+import cv2
+from matplotlib import pyplot as plt
+from adafruit_servokit import ServoKit
 
-# from canine.jetson import capture
+from canine.jetson import capture
 from canine.jetson import actions
 
-MAX_BUFFER_LEN = 10
+MAX_BUFFER_LEN = 20
 BUFFER = np.array([-1]*MAX_BUFFER_LEN)
 LAST_ACTION = None
+GSTREAMER_PIPELINE ="nvarguscamerasrc ! video/x-raw(memory:NVMM), width=(int)1920, height=(int)1080, format=(string)NV12, framerate=(fraction)30/1 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=(string)BGR ! appsink"
 
+kit = ServoKit(channels=16)
+kit.servo[0].angle = 100
+
+def reward():
+    kit.servo[0].angle = 60
+    time.sleep(.10)
+    kit.servo[0].angle = 100
+    time.sleep(10) # enough time to eat treat
 
 def make_decision():
     global LAST_ACTION
@@ -24,7 +36,7 @@ def make_decision():
             if action == 0: # lying
                 pass
             elif action == 1: # sitting
-                actions.sit()
+                reward()
             elif action == 2: # standing
                 pass
             else:
@@ -35,10 +47,6 @@ def make_decision():
 
             print(f'{labels[max_i]} has majority with {counts[max_i]*100:.3f}%')
             print(BUFFER)
-    # check buffer  
-    # if full; continue
-    # else; return
-    pass
 
 
 def make_inference(interpreter, X):
@@ -60,7 +68,19 @@ def make_inference(interpreter, X):
     total_t = end_t - start_t
     
     action = np.argmax(output_data)
-    print(action, output_data)
+
+    # action must have min probability of class
+    if output_data[0][action] < .40:
+        action = -1
+        print("unknown", output_data)
+
+    if action == 0:
+        print("lying", output_data)
+    elif action == 1:
+        print("sitting", output_data)
+    elif action == 2:
+        print("standing", output_data)
+
     return action, output_data
 
 
@@ -68,18 +88,28 @@ def main(tflite_path):
     interpreter = tf.lite.Interpreter(model_path=tflite_path)
     interpreter.resize_tensor_input(0, (1, 224, 224, 3), strict=0)
     interpreter.allocate_tensors()
+    cap = cv2.VideoCapture(GSTREAMER_PIPELINE, cv2.CAP_GSTREAMER)
+    
+    for l in range (30):
+        temp = cap.read()
 
     print('INFO: Finished initializing')
 
     i = 0
     while(True):
-        X = np.random.rand(1, 224, 224, 3) * 255. # capture.get_image()
-        # X = tf.keras.applications.mobilenet.preprocess_input(X)
-        Y, probs  = make_inference(interpreter, X)
-        BUFFER[i] = Y
-        make_decision()
 
-        i = (i+1) % MAX_BUFFER_LEN
+        if cap.isOpened():
+            ret_val, img = cap.read()
+            img = cv2.resize(img, (224, 224))
+            img = img.reshape(1,224,224,3)
+
+            # X = tf.keras.applications.mobilenet.preprocess_input(X)
+            Y, probs  = make_inference(interpreter, img)
+            if Y != -1:
+                BUFFER[i] = Y
+                make_decision()
+
+            i = (i+1) % MAX_BUFFER_LEN
 
 
 if __name__ == "__main__":
