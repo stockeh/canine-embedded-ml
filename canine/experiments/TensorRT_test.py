@@ -8,7 +8,7 @@ from tensorflow.python.saved_model import tag_constants
 
 INPUT_MODEL_DIR = sys.argv[1]
 
-def benchmark_saved_model(SAVED_MODEL_DIR, BATCH_SIZE=64, NUM_BATCHES=100):
+def benchmark_saved_model(SAVED_MODEL_DIR, BATCH_SIZE=1, NUM_BATCHES=64):
     saved_model_loaded = tf.saved_model.load(SAVED_MODEL_DIR, tags=[tag_constants.SERVING])
     signature_keys = list(saved_model_loaded.signatures.keys())
     print(signature_keys)
@@ -36,6 +36,7 @@ def benchmark_saved_model(SAVED_MODEL_DIR, BATCH_SIZE=64, NUM_BATCHES=100):
     print('Inference speed: %.2f samples/s'%(NUM_BATCHES*BATCH_SIZE/(end_time-start_time)))
 
 if(len(sys.argv)>2):
+    INPUT_MODEL_DIR = sys.argv[1]
     PRECISION = sys.argv[2]
     params = tf.experimental.tensorrt.ConversionParams(
         precision_mode=PRECISION)
@@ -45,5 +46,5 @@ if(len(sys.argv)>2):
     converter.convert()
     converter.save(INPUT_MODEL_DIR+'-trt-'+PRECISION)
     INPUT_MODEL_DIR = INPUT_MODEL_DIR+'-trt-'+PRECISION
-
-benchmark_saved_model(INPUT_MODEL_DIR, BATCH_SIZE=1, NUM_BATCHES=64)
+else:
+    benchmark_saved_model(INPUT_MODEL_DIR, BATCH_SIZE=1, NUM_BATCHES=64)
